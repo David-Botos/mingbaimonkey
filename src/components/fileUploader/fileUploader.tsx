@@ -8,10 +8,12 @@ const FileUploadComponent = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
+  // this opens up the file selector and puts the file into the input ref
   const onButtonClick = () => {
     inputFile.current?.click();
   };
 
+  // this triggers when the input file changes. if there are multiple files uploaded, it selects the first one, then sets the useState which shows the upload button
   const onChangeFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -19,9 +21,11 @@ const FileUploadComponent = () => {
     }
   };
 
+  // when the upload button is clicked
   const handleUpload = async () => {
     if (uploadedFile) {
       setUploadStatus("Fetching presigned url...");
+      // call server function to securely retrieve the presigned url - valid for 60 seconds
       const presignedUrlResult = await getPresignedUrl(
         uploadedFile.name,
         uploadedFile.type
@@ -35,6 +39,7 @@ const FileUploadComponent = () => {
 
       try {
         setUploadStatus("Uploading to S3...");
+        // using the presigned url, make a PUT command with the file
         const response = await fetch(presignedUrlResult.url, {
           method: "PUT",
           body: uploadedFile,
@@ -46,6 +51,7 @@ const FileUploadComponent = () => {
           setUploadStatus(
             `Upload Successful. Storing document in your user profile...`
           );
+          // call a server function to upload the s3 and document details to supabase
           const storeResult = await storeDocumentInfo(
             uploadedFile.name,
             response.url

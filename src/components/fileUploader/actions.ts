@@ -4,9 +4,11 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { serverClient } from "@/utils/supabase/server";
 
-// AWS storage functions: this is used to store documents in an S3 bucket for textraction and analysis
+// AWS storage functions: this is used to store documents in an S3 bucket for textraction and analysis //
 
+// check to make sure AWS secrets are present
 if (
   !process.env.AWS_ACCESS_KEY_ID ||
   !process.env.AWS_SECRET_ACCESS_KEY ||
@@ -15,6 +17,7 @@ if (
   throw new Error("AWS credentials are not set in the environment variables");
 }
 
+// create an s3Client with the secrets
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
   credentials: {
@@ -23,6 +26,7 @@ const s3Client = new S3Client({
   },
 });
 
+// Fetch a presigned url for file uploads
 type PresignedUrlResult =
   | { success: true; url: string }
   | { success: false; error: unknown };
@@ -49,28 +53,13 @@ export async function getPresignedUrl(
   }
 }
 
-// Supabase storage functions:  This is used to connect uploaded documents to the user that uploaded them so you know what to reference in S3
+// Supabase storage functions:  This is used to connect uploaded documents to the user that uploaded them so you know what to reference in S3 //
 
 export async function storeDocumentInfo(fileName: string, s3Url: string) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: "", ...options });
-        },
-      },
-    }
-  );
+  // Create a serverside supabase client with the secrets and cookie methods to bridge nextjs and supabase auth
+  const supabase = serverClient();
 
+  // Get the current user based on the cookies from NextJS
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -79,6 +68,7 @@ export async function storeDocumentInfo(fileName: string, s3Url: string) {
     return { success: false, error: "No authenticated user" };
   }
 
+  // Upload the user's uuid and the s3 url + metadata so the document can be fetched at a later date
   const { data, error } = await supabase.from("documents").insert({
     user_id: user.id,
     file_name: fileName,
