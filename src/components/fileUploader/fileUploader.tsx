@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { getPresignedUrl } from "./actions";
+import { getPresignedUrl, storeDocumentInfo } from "./actions";
 
 const FileUploadComponent = () => {
   const inputFile = useRef<HTMLInputElement>(null);
@@ -43,10 +43,25 @@ const FileUploadComponent = () => {
           },
         });
         if (response.ok) {
-          setUploadStatus(`Upload Successful`);
+          setUploadStatus(
+            `Upload Successful. Storing document in your user profile...`
+          );
+          const storeResult = await storeDocumentInfo(
+            uploadedFile.name,
+            response.url
+          );
+          if (storeResult.success) {
+            setUploadStatus(
+              "File uploaded and stored on your user profile successfully"
+            );
+          } else {
+            setUploadStatus(
+              "File uploaded but failed to be stored on the user profile successfully"
+            );
+          }
         } else {
           setUploadStatus(`Upload failed: ${response.statusText}`);
-          console.log(response)
+          console.log(response);
         }
       } catch (error) {
         if (error instanceof Error)
