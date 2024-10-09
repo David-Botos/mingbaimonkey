@@ -14,3 +14,17 @@ export function encodedRedirect(
 ) {
   return redirect(`${path}?${type}=${encodeURIComponent(message)}`);
 }
+
+export function generateUUID() {
+  // Check if we're in a Node.js environment
+  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+    // Node.js environment
+    const { randomUUID } = require('crypto');
+    return randomUUID();
+  } else if (typeof window !== 'undefined' && window.crypto) {
+    // Browser environment
+    return window.crypto.randomUUID();
+  } else {
+    throw new Error('Unable to generate UUID: crypto support not found');
+  }
+}
