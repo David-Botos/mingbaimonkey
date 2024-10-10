@@ -137,10 +137,17 @@ export async function triggerStartDocumentAnalysis(
 }
 
 // update supa with textract job
-export async function updateSupaWithJob(supaUUID, jobUUID) {
+export async function updateSupaWithJob(supaUUID: string, jobUUID: string) {
   const supabase = serverClient();
-  supabase
+  const { data, error } = await supabase
     .from("documents")
     .update({ textract_job: jobUUID })
     .eq("id", supaUUID);
+
+  if (error) {
+    console.error("Error storing document info in Supabase: ", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data };
 }

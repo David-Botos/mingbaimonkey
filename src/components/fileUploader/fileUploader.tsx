@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   getPresignedUrl,
   storeDocumentInfo,
   triggerStartDocumentAnalysis,
   updateSupaWithJob,
 } from "./actions";
-import { rename } from "fs/promises";
-import { join } from "path";
 import { generateUUID } from "@/utils/utils";
+import { useRouter } from "next/navigation";
 
 const FileUploadComponent = () => {
   const inputFile = useRef<HTMLInputElement>(null);
@@ -32,6 +31,8 @@ const FileUploadComponent = () => {
     const file = event.target.files?.[0];
     if (file) {
       setUploadedFile(file);
+      // rename file to unique uuid and store original name for user reference
+      setFileOriginalName(file.name);
     }
   };
 
@@ -45,8 +46,6 @@ const FileUploadComponent = () => {
   // when the upload button is clicked
   const handleUpload = async () => {
     if (uploadedFile) {
-      // rename file to unique uuid and store original name for user reference
-      setFileOriginalName(uploadedFile.name);
       const uniqueName = `${generateUUID()}.pdf`;
       const fileForS3 = dupeFileForUpload(uploadedFile, uniqueName);
       // checking that files renamed successfully
@@ -97,12 +96,9 @@ const FileUploadComponent = () => {
             const result = await triggerStartDocumentAnalysis(fileForS3.name);
             if (result.success) {
               setTextractJobId(result.jobId);
-              // TODO: FINISH update supa with textract job id
-              updateSupaWithJob(supaUUID, textractJobId);
               setUploadStatus(
                 `Textract analysis initiated successfully with jobID ${result.jobId}`
               );
-              setCanContinue(true);
             } else {
               setUploadStatus(
                 `Failed to initiate Textract analysis: ${result.error}`
@@ -125,10 +121,21 @@ const FileUploadComponent = () => {
     }
   };
 
-  const handleTextract = () => {
+  useEffect(() => {
+    if (supaUUID && textractJobId) {
+      updateSupaWithJob(supaUUID, textractJobId);
+      setCanContinue(true);
+    } else {
+      console.log("supaUUID and/or textractJobId are missing");
+    }
+  }, [textractJobId]);
+
+  const router = useRouter();
+
+  const handlePush = () => {
     if (textractJobId) {
       console.log(`Retrieving Textract results for job ID: ${textractJobId}`);
-      // router.push(`/textract-results/${textractJobId}`);
+      router.push(`/reader/${textractJobId}`);
     } else {
       setUploadStatus(
         "No Textract job ID available. Please upload a file first."
@@ -176,7 +183,7 @@ const FileUploadComponent = () => {
       </div>
       {canContinue && (
         <button
-          onClick={handleTextract}
+          onClick={handlePush}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
         >
           View Textract Results
