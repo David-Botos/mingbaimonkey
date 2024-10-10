@@ -14,7 +14,9 @@ import { generateUUID } from "@/utils/utils";
 const FileUploadComponent = () => {
   const inputFile = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileOriginalName, setFileOriginalName] = useState<string | null>(null);
+  const [fileOriginalName, setFileOriginalName] = useState<string>(
+    "failure to set original name"
+  );
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [canContinue, setCanContinue] = useState<boolean>(false);
   const [textractJobId, setTextractJobId] = useState<string | null>(null);

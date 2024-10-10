@@ -78,17 +78,15 @@ export async function storeDocumentInfo(
   return { success: true, data };
 }
 
-// type StartDocumentAnalysisResult =
-//   | { success: true; jobId: string }
-//   | { success: false; error: unknown };
+type TriggerStartDocumentAnalysisResult =
+  | { success: true; jobId: string; $metadata?: Record<string, any> }
+  | { success: false; error: string };
 
-export async function triggerStartDocumentAnalysis(fileName: string) {
+export async function triggerStartDocumentAnalysis(
+  fileName: string
+): Promise<TriggerStartDocumentAnalysisResult> {
   const textract = new TextractClient();
 
-  // Creating a request token thats unique on my side
-  // const clientRequestToken = generateUUID();
-
-  // Creating an s3 object so textract knows what document to grab from s3
   const s3Object = {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Name: fileName,
@@ -111,11 +109,20 @@ export async function triggerStartDocumentAnalysis(fileName: string) {
   try {
     const command = new StartDocumentAnalysisCommand(request);
     const response = await textract.send(command);
+
     if (response.$metadata.httpStatusCode === 200) {
       console.log("Textract job started with job id: ", response.JobId);
-      return { success: true, jobId: response.JobId };
+      return {
+        success: true,
+        jobId: response.JobId!,
+        $metadata: response.$metadata,
+      };
     } else {
       console.log(response.$metadata);
+      return {
+        success: false,
+        error: `${response.$metadata.httpStatusCode} Error: Unexpected response from Textract`,
+      };
     }
   } catch (error) {
     console.error("Error starting textract job: ", error);
@@ -132,5 +139,8 @@ export async function triggerStartDocumentAnalysis(fileName: string) {
 // update supa with textract job
 export async function updateSupaWithJob(supaUUID, jobUUID) {
   const supabase = serverClient();
-  //TODO: Finish uploading the job id to supabase
+  supabase
+    .from("documents")
+    .update({ textract_job: jobUUID })
+    .eq("id", supaUUID);
 }
