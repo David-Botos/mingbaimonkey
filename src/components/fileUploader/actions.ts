@@ -91,19 +91,13 @@ export async function triggerStartDocumentAnalysis(
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Name: fileName,
   };
-
-  const notifChannel = {
-    SNSTopicArn: process.env.AWS_TEXTRACT_SNS_ARN,
-    RoleArn: process.env.AWS_TEXTRACT_ROLE_ARN,
-  };
-
+  
   const request: StartDocumentAnalysisCommandInput = {
     DocumentLocation: {
       S3Object: s3Object,
     },
     FeatureTypes: [FeatureType.LAYOUT],
     JobTag: `job_for_${fileName}`,
-    NotificationChannel: notifChannel,
   };
 
   try {
