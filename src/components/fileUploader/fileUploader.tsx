@@ -135,7 +135,7 @@ const FileUploadComponent = () => {
   const handlePush = () => {
     if (textractJobId) {
       console.log(`Retrieving Textract results for job ID: ${textractJobId}`);
-      router.push(`/reader/${textractJobId}`);
+      router.push(`/reader/${supaUUID}?jobUUID=${textractJobId}`);
     } else {
       setUploadStatus(
         "No Textract job ID available. Please upload a file first."
